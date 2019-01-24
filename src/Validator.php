@@ -192,11 +192,10 @@ class Validator
 
     public function validateRequiredWith($attribute, $value, $params)
     {
-        if (!$value) {
-            return true;
+        $other = $this->getValue($params[0]);
+        if ($other) {
+            return $this->validateRequired($attribute, $value, '');
         }
-        $other_attr = $params[0];
-        $other = $this->getValue($other_attr);
-        return $this->validateRequired($other_attr, $other, $this->getRule($other_attr, 'required'));
+        return true;
     }
 }
