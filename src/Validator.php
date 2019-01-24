@@ -141,7 +141,7 @@ class Validator
         return $this->fails;
     }
 
-    public function validateRequired($attribute, $value, $params)
+    public function validateRequired($attribute, $value)
     {
         if (is_null($value)) {
             return false;
@@ -195,6 +195,27 @@ class Validator
         $other = $this->getValue($params[0]);
         if ($other) {
             return $this->validateRequired($attribute, $value, '');
+        }
+        return true;
+    }
+
+    public function validateString($attribute, $value)
+    {
+        return is_string($value);
+    }
+
+    public function validateArray($attribute, $value)
+    {
+        return is_array($value);
+    }
+
+    public function validateDifferent($attribute, $value, $params)
+    {
+        foreach ($params as $param) {
+            $other = $this->getValue($attribute);
+            if (is_null($other) || $value === $other) {
+                return false;
+            }
         }
         return true;
     }
