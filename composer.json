@@ -1,0 +1,19 @@
+{
+    "name": "ljw/validator",
+    "description": "a simple validator",
+    "keywords": ["validator", "ljw", "validate"],
+    "homepage": "https://github.com/lejianwen/validator",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "JianWen Le",
+            "email": "84855512@qq.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0"
+    },
+    "autoload": {
+        "psr-4": {"Ljw\\Validator\\": "src"}
+    }
+}
