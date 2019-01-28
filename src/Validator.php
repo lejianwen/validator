@@ -60,7 +60,6 @@ class Validator
                     $method = $rule;
                     $params = [];
                 }
-
                 $new_rules[$attribute][$method] = $params;
             }
         }
@@ -81,7 +80,7 @@ class Validator
 
     protected function getSize($attribute, $value)
     {
-        $has_numeric = ($this->getRule($attribute, 'int') || $this->getRule($attribute, 'num'));
+        $has_numeric = ($this->getRule($attribute, 'int') !== null || $this->getRule($attribute, 'num') !== null);
         if (is_numeric($value) && $has_numeric) {
             return $value;
         }
@@ -105,7 +104,11 @@ class Validator
      */
     protected function validateRule($attribute, $rule, $params = [])
     {
-        $validate_method = 'validate' . ucfirst(trim($rule));
+        //解析rule，根据下划线分割并首字母大写
+        $rules = array_map(function ($r) {
+            return ucfirst($r);
+        }, explode('_', $rule));
+        $validate_method = 'validate' . implode('', $rules);
         if (is_callable([$this, $validate_method])) {
             $value = $this->getValue($attribute);
             if (!$this->$validate_method($attribute, $value, $params)) {
@@ -131,8 +134,11 @@ class Validator
         } elseif (isset($this->messages["{$attribute}"])) {
             $message = $this->messages["{$attribute}"];
         }
-        $value = isset($this->data[$attribute]) ? $this->data[$attribute] : '';
-        $message = str_replace([':attribute', ':value', ':params'], [$attribute, $value, implode('', $params)], $message);
+        $value = $this->getValue($attribute);
+        if (is_array($value)) {
+            $value = implode(',', $value);
+        }
+        $message = str_replace([':attribute', ':value', ':params'], [$attribute, (string)$value, implode(',', $params)], $message);
         $this->fails[] = $message;
     }
 
@@ -218,5 +224,53 @@ class Validator
             }
         }
         return true;
+    }
+
+    public function validateConfirmed($attribute, $value, $params)
+    {
+        return $this->validateSame($attribute, $value, $params);
+    }
+
+    public function validateIp($attribute, $value)
+    {
+        return filter_var($value, FILTER_VALIDATE_IP) !== false;
+    }
+
+    public function validateIpv4($attribute, $value)
+    {
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+    }
+
+    public function validateIpv6($attribute, $value)
+    {
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+    }
+
+    public function validateJson($attribute, $value)
+    {
+        if (!is_scalar($value) && !method_exists($value, '__toString')) {
+            return false;
+        }
+        json_decode($value);
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    public function validateIn($attribute, $value, $params)
+    {
+        //二维数据直接false
+        if (is_array($value) && $this->getRule($attribute, 'array') !== null) {
+            foreach ($value as $element) {
+                if (is_array($element)) {
+                    return false;
+                }
+            }
+            return count(array_diff($value, $params)) == 0;
+        }
+        return !is_array($value) && in_array((string)$value, $params);
+    }
+
+    public function validateNotIn($attribute, $value, $params)
+    {
+        return !$this->validateIn($attribute, $value, $params);
     }
 }
