@@ -1,5 +1,14 @@
-# validator
-validate for request
+# 一个简单的验证工具
+
+## 安装
+
+~~~
+composer require "ljw/validator": "dev-master"
+~~~
+
+### 示例： 
+
+***还在开发中，慢慢完善***
 
 ~~~php
 
@@ -10,12 +19,12 @@ $data = [
 ];
 //验证规则
 $rules = [
-    'username' => 'requiredWith:nickname',
+    'username' => 'required_with:nickname',
     'nickname' => 'max:2',
 ];
 //验证不通过提示
 $messages = [
-    'username.requiredWith' => 'username is required with nickname',
+    'username.required_with' => 'username is required with nickname',
     'username.between'      => 'username <> between',
     'username.num'          => 'username is not num',
     'same'                  => ':attribute is :value  ;same is  :params '
