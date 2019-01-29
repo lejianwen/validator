@@ -257,20 +257,154 @@ class Validator
 
     public function validateIn($attribute, $value, $params)
     {
-        //二维数据直接false
-        if (is_array($value) && $this->getRule($attribute, 'array') !== null) {
+        if (is_array($value)) {
+            //二维数据直接false
             foreach ($value as $element) {
                 if (is_array($element)) {
                     return false;
                 }
             }
             return count(array_diff($value, $params)) == 0;
+        } else {
+            return in_array((string)$value, $params);
         }
-        return !is_array($value) && in_array((string)$value, $params);
     }
 
     public function validateNotIn($attribute, $value, $params)
     {
         return !$this->validateIn($attribute, $value, $params);
+    }
+
+    public function validateDate($attribute, $value)
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return true;
+        }
+        if ((!is_string($value) && !is_numeric($value)) || strtotime($value) === false) {
+            return false;
+        }
+        $date = date_parse($value);
+        return checkdate($date['month'], $date['day'], $date['year']);
+    }
+
+    /**
+     * 验证日期格式
+     * @param string $attribute
+     * @param mixed $value
+     * @param array $parameters
+     * @return bool
+     * @author Lejianwen
+     */
+    public function validateDateFormat($attribute, $value, $params)
+    {
+        if (!is_string($value) && !is_numeric($value)) {
+            return false;
+        }
+        $format = $params[0];
+        $date = \DateTime::createFromFormat('!' . $format, $value);
+        return $date && $date->format($format) == $value;
+    }
+
+    public function validateEqual($attribute, $value, $params)
+    {
+        return $this->compareDates($attribute, $value, $params, '=');
+    }
+
+    public function validateBefore($attribute, $value, $params)
+    {
+        return $this->compareDates($attribute, $value, $params, '<');
+    }
+
+    public function validateBeforeOrEqual($attribute, $value, $params)
+    {
+        return $this->compareDates($attribute, $value, $params, '<=');
+    }
+
+    public function validateAfter($attribute, $value, $params)
+    {
+        return $this->compareDates($attribute, $value, $params, '>');
+    }
+
+    public function validateAfterOrEqual($attribute, $value, $params)
+    {
+        return $this->compareDates($attribute, $value, $params, '>=');
+    }
+
+    protected function compareDates($attribute, $value, $params, $operator)
+    {
+        if (!is_string($value) && !is_numeric($value) && !$value instanceof \DateTimeInterface) {
+            return false;
+        }
+        $format = $this->getRule($attribute, 'date_format');
+        if ($format !== null) {
+            // 如果当前attribute规定了时间格式， 则根据时间格式来获取时间戳
+            $first_timestamp = $this->getTimeStampByFormat($format[0], $value);
+        } else {
+            $first_timestamp = $this->getTimeStamp($value);
+        }
+        // 第二个比较的值可能是数据的字段名
+        $second = $this->getValue($params[0]) ?: $params[0];
+        if ($this->getValue($params[0]) && $this->getRule($params[0], 'date_format') !== null) {
+            // 如果比较的参数是已存在的字段，则根据对应字段的时间格式获取时间戳
+            $second_format = $this->getRule($params[0], 'date_format');
+            $second_timestamp = $this->getTimeStampByFormat($second_format[0], $second);
+
+        }/* elseif ($format !== null) {
+            // 根据当前attribute的时间格式获取时间戳
+            $second_timestamp = $this->getTimeStampByFormat($format[0], $second);
+        } */ else {
+            $second_timestamp = $this->getTimeStamp($second);
+        }
+
+        return $this->compare($first_timestamp, $second_timestamp, $operator);
+    }
+
+    protected function getTimeStamp($value)
+    {
+        return $value instanceof \DateTime ? $value->getTimestamp() : strtotime($value);
+    }
+
+    /**
+     * 根据格式获取日期时间
+     * @param $format
+     * @param $value
+     * @return \DateTime|null
+     * @author Lejianwen
+     */
+    protected function getDateTimeByFormat($format, $value)
+    {
+        if ($date = \DateTime::createFromFormat('!' . $format, $value)) {
+            return $date;
+        }
+
+        try {
+            return new \DateTime($value);
+        } catch (Exception $e) {
+            //
+        }
+    }
+
+    protected function getTimeStampByFormat($format, $value)
+    {
+        $date = $this->getDateTimeByFormat($format, $value);
+        return $date ? $date->getTimestamp() : null;
+    }
+
+    protected function compare($first, $second, $operator)
+    {
+        switch ($operator) {
+            case '<':
+                return $first < $second;
+            case '>':
+                return $first > $second;
+            case '<=':
+                return $first <= $second;
+            case '>=':
+                return $first >= $second;
+            case '=':
+                return $first == $second;
+            default:
+                throw new InvalidArgumentException;
+        }
     }
 }
