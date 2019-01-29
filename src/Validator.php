@@ -171,11 +171,21 @@ class Validator
         $this->fails[] = $message;
     }
 
+    /**
+     * 第一条验证失败的信息
+     * @return mixed|string
+     * @author Lejianwen
+     */
     public function fistFail()
     {
         return empty($this->fails) ? '' : $this->fails[0];
     }
 
+    /**
+     * 所有验证失败的信息
+     * @return array
+     * @author Lejianwen
+     */
     public function getFails()
     {
         return $this->fails;
