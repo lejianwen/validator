@@ -441,4 +441,17 @@ class Validator
                 throw new InvalidArgumentException;
         }
     }
+
+    public function validateEmail($attribute, $value, $params)
+    {
+        return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    public function validateRegex($attribute, $value, $params)
+    {
+        if (!is_string($value) && !is_numeric($value)) {
+            return false;
+        }
+        return preg_match($params[0], $value) > 0;
+    }
 }
