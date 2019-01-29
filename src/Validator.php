@@ -14,17 +14,31 @@ class Validator
     protected $rules = [];
     protected $messages = [];
     protected $fails = [];
+    protected $register_functions = [];
 
-    public function __construct($data, $rules, $messages)
+    public function __construct($data, $rules, $messages, $register_functions = [])
     {
         $this->data = $data;
         $this->rules = $this->parseRules($rules);
         $this->messages = $messages;
+        if (!empty($register_functions)) {
+            $this->registerFunctions($register_functions);
+        }
     }
 
-    public static function make($data, $rules, $messages)
+    /**
+     * make
+     * @param $data
+     * @param $rules
+     * @param $messages
+     * @param array $register_functions
+     * @return Validator
+     * @author Lejianwen
+     */
+    public static function make($data, $rules, $messages, $register_functions = [])
     {
-
+        $validator = new Validator($data, $rules, $messages, $register_functions);
+        return $validator->run();
     }
 
     public function run()
@@ -35,6 +49,17 @@ class Validator
                 $this->validateRule($attribute, $rule, $params);
             }
         }
+        return $this;
+    }
+
+    /**
+     * 注册自定义方法
+     * @param $functions
+     * @author Lejianwen
+     */
+    public function registerFunctions($functions)
+    {
+        $this->register_functions = array_merge($this->register_functions, $functions);
     }
 
     /**
@@ -105,13 +130,17 @@ class Validator
     protected function validateRule($attribute, $rule, $params = [])
     {
         //解析rule，根据下划线分割并首字母大写
-        $rules = array_map(function ($r) {
+        $rule_names = implode('', array_map(function ($r) {
             return ucfirst($r);
-        }, explode('_', $rule));
-        $validate_method = 'validate' . implode('', $rules);
+        }, explode('_', $rule)));
+        $validate_method = 'validate' . $rule_names;
+        $value = $this->getValue($attribute);
         if (is_callable([$this, $validate_method])) {
-            $value = $this->getValue($attribute);
             if (!$this->$validate_method($attribute, $value, $params)) {
+                $this->addFailMessage($attribute, $rule, $params);
+            }
+        } elseif (isset($this->register_functions[$rule]) && $this->register_functions[$rule] instanceof \Closure) {
+            if (!$this->register_functions[$rule]($attribute, $value, $params)) {
                 $this->addFailMessage($attribute, $rule, $params);
             }
         }
@@ -140,6 +169,11 @@ class Validator
         }
         $message = str_replace([':attribute', ':value', ':params'], [$attribute, (string)$value, implode(',', $params)], $message);
         $this->fails[] = $message;
+    }
+
+    public function fistFail()
+    {
+        return empty($this->fails) ? '' : $this->fails[0];
     }
 
     public function getFails()
