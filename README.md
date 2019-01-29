@@ -3,7 +3,7 @@
 ## 安装
 
 ~~~
-composer require "ljw/validator": "dev-master"
+composer require ljw/validator dev-master
 ~~~
 
 ### 示例： 
@@ -18,7 +18,7 @@ $data = [
     'username' => ['a', 'b'],
     'date_1'   => date('d-m-Y'),
     'date_2'   => '20190129',
-    'test_zdy' => 'abc'
+    'test_zdy' => 'abc',    
 ];
 //验证规则
 $rules = [
@@ -26,7 +26,7 @@ $rules = [
     'nickname' => 'max:2',
     'date_1'   => 'date|date_format:d-m-Y',
     'date_2'   => 'equal:date_1',
-    'test_zdy' => 'zdy:a,b'
+    'test_zdy' => 'zdy:a,b', // 自定义规则
 ];
 //验证不通过提示
 $messages = [
